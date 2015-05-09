@@ -24,7 +24,7 @@ uint16_t delMe = 0;
 float r, g, b;
 
 void setup() {
-//	Serial.begin(9600);
+	Serial.begin(9600);
 
 //Initialize FastLED for the infinity symbol strip
 	FastLED.addLeds<NEOPIXEL, PIN>(strip, NUM_LED);
@@ -70,30 +70,47 @@ void loop() {
 //	FastLED.show();
 //	delay(200);
 
-	colorCounter = 0;
-	wipeRainbow(25);
-	while (delMe < 750) {
-		rainbowShift(10, false, colorCounter);
-		delMe++;
+	halfTopBottom(true, 25, CRGB::Amethyst, CRGB::DarkRed);
+	for (int i = 0; i < NUM_LED; i++) {
+		shift(true);
+		FastLED.show();
+		Serial.println("Did done it");
+	}
+	delay(100);
+	halfTopBottom(true, 25, CRGB::SpringGreen, CRGB::LightSalmon);
+	for (int i = 0; i < NUM_LED; i++) {
+		shift(false);
 	}
 
-	colorCounter = random8();
-	chasingInfinity(true, 10);
-	chasingInfinity(true, 20);
-	chasingFromSides(false, 45);
-	chasingInfinity(true, 50);
-	chasingFromSides(false, 30);
-	chasingInfinity(false, 10);
-	chasingInfinity(false, 20);
-	chasingInfinity(false, 50);
-	doubleSymmetricalFlipFlow(30);
-	chasingFromSides(false, 30);
-	doubleSymmetricalFlipFlow(15);
-	chasingFromSides(false, 30);
-	doubleSymmetricalFlipFlow(15);
-	doubleSymmetricalFlipFlow(30);
-	doubleSymmetricalFlipFlow(30);
-	doubleSymmetricalFlipFlow(15);
+//	halfTopBottom(true, 30, CRGB::DarkRed, CRGB::Amethyst);
+//	delay(100);
+//	fill_solid( &(leds[i]), NUM_LED , CRGB::Black);
+//	delay(100);
+
+//	colorCounter = 0;
+//	wipeRainbow(25);
+//	while (delMe < 750) {
+//		rainbowShift(10, false, colorCounter);
+//		delMe++;
+//	}
+//
+//	colorCounter = random8();
+//	chasingInfinity(true, 10);
+//	chasingInfinity(true, 20);
+//	chasingFromSides(false, 45);
+//	chasingInfinity(true, 50);
+//	chasingFromSides(false, 30);
+//	chasingInfinity(false, 10);
+//	chasingInfinity(false, 20);
+//	chasingInfinity(false, 50);
+//	doubleSymmetricalFlipFlow(30);
+//	chasingFromSides(false, 30);
+//	doubleSymmetricalFlipFlow(15);
+//	chasingFromSides(false, 30);
+//	doubleSymmetricalFlipFlow(15);
+//	doubleSymmetricalFlipFlow(30);
+//	doubleSymmetricalFlipFlow(30);
+//	doubleSymmetricalFlipFlow(15);
 }
 
 void wipeRainbow(int delayTime) {
@@ -228,6 +245,47 @@ void chasingFromSides(bool changeChaseDirection, int delayTime) {
 	colorCounter += 33;
 }
 
+/*Trying a new approach here. This should just put it into a state that can be moved with shift.*/
+void halfTopBottom(bool animate, uint16_t animationDelay, CRGB colorTop, CRGB colorBottom) {
+	Serial.println("Starting function");
+	uint16_t rightAnchor = 15;
+	uint16_t leftAnchor = 45;
+	uint16_t endPoint = 45;
+
+	while (rightAnchor < endPoint) {
+
+		Serial.print("LeftAnchor: ");
+		Serial.print(leftAnchor);
+		Serial.print(" -  RightAnchor: ");
+		Serial.println(rightAnchor);
+
+		setStrip(strip, rightAnchor, colorTop);
+		setStrip(strip, leftAnchor, colorBottom);
+		rightAnchor++;
+		leftAnchor++;
+		if (leftAnchor == NUM_LED) {
+			leftAnchor = 0;
+		}
+		if (animate == true) {
+			Serial.println("Justa bout to show");
+			FastLED.show();
+			delay(animationDelay);
+		}
+	}
+	if (animate == false) {
+		FastLED.show();
+	}
+}
+
+void halfRightLeft(bool animate) {
+
+}
+
+void meteorChaser(bool animate, uint8_t tailLength, uint8_t fadeValue) {
+
+}
+
+/*Helper Methods*/
 
 void setStrip(CRGB strip[], uint16_t index) {
 	if (useColorSensor == true) {
@@ -235,6 +293,10 @@ void setStrip(CRGB strip[], uint16_t index) {
 	} else {
 		strip[index].setHue(colorCounter);
 	}
+}
+
+void setStrip(CRGB strip[], uint16_t index, CRGB color) {
+	strip[index] = color;
 }
 
 void getSensorData() {
@@ -289,11 +351,26 @@ void shift(int to, int from) {
 	}
 }
 
-void shift() {
+//Check out the  memmove function to maybe do it more quickly
+void shift(bool changeDirection) {
 	uint32_t wrapAroundPixel;
-	wrapAroundPixel = strip[NUM_LED-1];
-	for(int i=NUM_LED-1;i>0;i++) {
-		strip[i] = strip[i-1];
+	if (changeDirection == true) {
+		wrapAroundPixel = strip[NUM_LED - 1];
+		for (int i = NUM_LED - 1; i > 0; i++) {
+			strip[i] = strip[i - 1];
+		}
+		strip[0] = wrapAroundPixel;
+	} else {
+		wrapAroundPixel = strip[0];
+		for (int i = 0; i < NUM_LED; i++) {
+			strip[i] = strip[i + 1];
+		}
+		strip[NUM_LED - 1] = wrapAroundPixel;
 	}
-	strip[0] = wrapAroundPixel;
 }
+
+struct Painter {
+	byte r;
+	byte g;
+	byte b;
+};

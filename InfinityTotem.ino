@@ -281,8 +281,36 @@ void halfRightLeft(bool animate) {
 
 }
 
-void meteorChaser(bool animate, uint8_t tailLength, uint8_t fadeValue) {
+//TODO: Impletment fadeValue
+void meteorChaser(bool animate, uint8_t tailLength, uint16_t meteorBodyPixel, uint8_t fadeValue,
+		bool shitRandomColorsSometimes) {
+	uint16_t i;
+	fadeValue = 0;
+	for (i = meteorBodyPixel; i > meteorBodyPixel - tailLength; i--) {
+		strip[i].setHue(random8());
+		strip[i].fadeLightBy(fadeValue);
+		if(animate == true) {
+			FastLED.show();
+		}
+	}
+}
 
+//Check out the  memmove function to maybe do it more quickly
+void shift(bool changeDirection) {
+	uint32_t wrapAroundPixel;
+	if (changeDirection == true) {
+		wrapAroundPixel = strip[NUM_LED - 1];
+		for (int i = NUM_LED - 1; i > 0; i++) {
+			strip[i] = strip[i - 1];
+		}
+		strip[0] = wrapAroundPixel;
+	} else {
+		wrapAroundPixel = strip[0];
+		for (int i = 0; i < NUM_LED; i++) {
+			strip[i] = strip[i + 1];
+		}
+		strip[NUM_LED - 1] = wrapAroundPixel;
+	}
 }
 
 /*Helper Methods*/
@@ -351,24 +379,7 @@ void shift(int to, int from) {
 	}
 }
 
-//Check out the  memmove function to maybe do it more quickly
-void shift(bool changeDirection) {
-	uint32_t wrapAroundPixel;
-	if (changeDirection == true) {
-		wrapAroundPixel = strip[NUM_LED - 1];
-		for (int i = NUM_LED - 1; i > 0; i++) {
-			strip[i] = strip[i - 1];
-		}
-		strip[0] = wrapAroundPixel;
-	} else {
-		wrapAroundPixel = strip[0];
-		for (int i = 0; i < NUM_LED; i++) {
-			strip[i] = strip[i + 1];
-		}
-		strip[NUM_LED - 1] = wrapAroundPixel;
-	}
-}
-
+//Unused
 struct Painter {
 	byte r;
 	byte g;

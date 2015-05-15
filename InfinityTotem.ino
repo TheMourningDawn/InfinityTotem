@@ -24,7 +24,7 @@ uint16_t delMe = 0;
 float r, g, b;
 
 void setup() {
-	Serial.begin(9600);
+//	Serial.begin(9600);
 
 //Initialize FastLED for the infinity symbol strip
 	FastLED.addLeds<NEOPIXEL, PIN>(strip, NUM_LED);
@@ -68,49 +68,50 @@ void loop() {
 //		strip[i] = CRGB::Black;
 //	}
 //	FastLED.show();
-//	delay(200);
 
-	halfTopBottom(true, 25, CRGB::Amethyst, CRGB::DarkRed);
+	colorCounter = random8();
 	for (int i = 0; i < NUM_LED; i++) {
+		strip[i].setHue(colorCounter);
+	}
+	FastLED.show();
+	meteorChaser(true, 14, 20, 160, true);
+	for (int i = 0; i < 500; i++) {
 		shift(true);
 		FastLED.show();
-		Serial.println("Did done it");
+		delay(20);
 	}
-	delay(100);
-	halfTopBottom(true, 25, CRGB::SpringGreen, CRGB::LightSalmon);
+
+	wipeRainbow(25);
+	halfTopBottom(true, 23, strip[15], strip[45]);
 	for (int i = 0; i < NUM_LED; i++) {
 		shift(false);
+		FastLED.show();
+		delay(20);
 	}
 
-//	halfTopBottom(true, 30, CRGB::DarkRed, CRGB::Amethyst);
-//	delay(100);
-//	fill_solid( &(leds[i]), NUM_LED , CRGB::Black);
-//	delay(100);
+	chasingInfinity(true, 10);
+	chasingInfinity(true, 20);
+	chasingFromSides(false, 45);
+	chasingInfinity(true, 50);
+	chasingFromSides(false, 30);
+	chasingInfinity(false, 10);
+	chasingInfinity(false, 20);
+	chasingInfinity(false, 50);
+	doubleSymmetricalFlipFlow(30);
+	chasingFromSides(false, 30);
+	doubleSymmetricalFlipFlow(15);
+	chasingFromSides(false, 30);
+	doubleSymmetricalFlipFlow(15);
+	doubleSymmetricalFlipFlow(30);
+	doubleSymmetricalFlipFlow(30);
+	doubleSymmetricalFlipFlow(15);
+	checkColorCounter(colorCounter, true);
 
-//	colorCounter = 0;
-//	wipeRainbow(25);
-//	while (delMe < 750) {
-//		rainbowShift(10, false, colorCounter);
-//		delMe++;
-//	}
-//
-//	colorCounter = random8();
-//	chasingInfinity(true, 10);
-//	chasingInfinity(true, 20);
-//	chasingFromSides(false, 45);
-//	chasingInfinity(true, 50);
-//	chasingFromSides(false, 30);
-//	chasingInfinity(false, 10);
-//	chasingInfinity(false, 20);
-//	chasingInfinity(false, 50);
-//	doubleSymmetricalFlipFlow(30);
-//	chasingFromSides(false, 30);
-//	doubleSymmetricalFlipFlow(15);
-//	chasingFromSides(false, 30);
-//	doubleSymmetricalFlipFlow(15);
-//	doubleSymmetricalFlipFlow(30);
-//	doubleSymmetricalFlipFlow(30);
-//	doubleSymmetricalFlipFlow(15);
+	wipeRainbow(25);
+	while (delMe < 750) {
+		rainbowShift(10, false, colorCounter);
+		delMe++;
+	}
 }
 
 void wipeRainbow(int delayTime) {
@@ -245,7 +246,7 @@ void chasingFromSides(bool changeChaseDirection, int delayTime) {
 	colorCounter += 33;
 }
 
-/*Trying a new approach here. This should just put it into a state that can be moved with shift.*/
+///*Trying a new approach here. This should just put it into a state that can be moved with shift.*/
 void halfTopBottom(bool animate, uint16_t animationDelay, CRGB colorTop, CRGB colorBottom) {
 	Serial.println("Starting function");
 	uint16_t rightAnchor = 15;
@@ -282,25 +283,29 @@ void halfRightLeft(bool animate) {
 }
 
 //TODO: Impletment fadeValue
-void meteorChaser(bool animate, uint8_t tailLength, uint16_t meteorBodyPixel, uint8_t fadeValue,
-		bool shitRandomColorsSometimes) {
+void meteorChaser(bool animate, uint8_t tailLength, uint16_t meteorBodyPixel, uint16_t fadeValue, bool rainbowTail) {
 	uint16_t i;
-	fadeValue = 0;
-	for (i = meteorBodyPixel; i > meteorBodyPixel - tailLength; i--) {
-		strip[i].setHue(random8());
-		strip[i].fadeLightBy(fadeValue);
-		if(animate == true) {
+	int meteorHue = random8();
+	int fadeSpectrum = fadeValue;
+	int fadeIncrement = (256 - fadeValue) / tailLength;
+	for (i = meteorBodyPixel; i > (meteorBodyPixel - tailLength); i--) {
+		strip[i].setHue(meteorHue);
+		strip[i].fadeLightBy(fadeSpectrum);
+		if (animate == true) {
 			FastLED.show();
+			delay(20);
 		}
+		fadeSpectrum += fadeIncrement;
 	}
+	//Do an optional rainbow tail? Just use rainbow fill on the tail section instead.
 }
 
-//Check out the  memmove function to maybe do it more quickly
+//Check out the memmove function to maybe do it more quickly
 void shift(bool changeDirection) {
-	uint32_t wrapAroundPixel;
+	CRGB wrapAroundPixel;
 	if (changeDirection == true) {
 		wrapAroundPixel = strip[NUM_LED - 1];
-		for (int i = NUM_LED - 1; i > 0; i++) {
+		for (int i = NUM_LED - 1; i > 0; i--) {
 			strip[i] = strip[i - 1];
 		}
 		strip[0] = wrapAroundPixel;
@@ -366,22 +371,3 @@ void flipFlop(bool &flopToFlip) {
 	flopToFlip = true;
 }
 
-//TODO: this isn't safe when either parameter is close to either end of the strip
-void shift(int to, int from) {
-	if (to < from) {
-		for (int i = to; i < from; i++) {
-			strip[i] = strip[i + 1];
-		}
-	} else {
-		for (int i = to; i > from; i--) {
-			strip[i] = strip[i - 1];
-		}
-	}
-}
-
-//Unused
-struct Painter {
-	byte r;
-	byte g;
-	byte b;
-};

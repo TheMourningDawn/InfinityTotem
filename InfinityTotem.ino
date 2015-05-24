@@ -1,34 +1,61 @@
 #include <Wire.h>
-#include "Adafruit_TCS34725.h"
 #include <FastLED.h>
+#include <ClickEncoder.h>
+#include <TimerOne.h>
+#include "Adafruit_TCS34725.h"
 
 // set to false if using a common cathode LED
 #define commonAnode false
 
-#define PIN 6
-#define NUM_LED 60
+#define PIN_INFINITY_STRIP 12
+#define PIN_SETTINGS_STRIP 9
+
+#define PIN_ENCODER_A 0
+#define PIN_ENCODER_B 1
+#define PIN_ENCODER_SWITCH 6
+
+#define NUM_INFINITY_LED 60
+#define NUM_SETTING_LED 5
 
 Adafruit_TCS34725 colorSensor = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_50MS, TCS34725_GAIN_1X);
+ClickEncoder *encoder;
 
 // our RGB -> eye-recognized gamma color
 byte gammatable[256];
 
-CRGB strip[NUM_LED];
+CRGB infinity[NUM_INFINITY_LED];
+CRGB settings[NUM_SETTING_LED];
+
 bool flipFlopState = true;
 uint16_t colorCounter = 0;
 bool useColorSensor = false;
+
+int16_t last, value;
 
 uint16_t delMe = 0;
 
 // rgb to use for calcualted color sensor values functions will use
 float r, g, b;
 
+void timerIsr() {
+	encoder->service();
+}
+
 void setup() {
-//	Serial.begin(9600);
+	Serial.begin(9600);
 
 //Initialize FastLED for the infinity symbol strip
-	FastLED.addLeds<NEOPIXEL, PIN>(strip, NUM_LED);
+	FastLED.addLeds<NEOPIXEL, PIN_INFINITY_STRIP>(infinity, NUM_INFINITY_LED);
+	FastLED.addLeds<NEOPIXEL, PIN_SETTINGS_STRIP>(settings, NUM_SETTING_LED);
 
+	encoder = new ClickEncoder(0, 1, 6, 2, false);
+
+	Timer1.initialize(1000);
+	Timer1.attachInterrupt(timerIsr);
+
+	last = -1;
+
+	//Start the color sensor if necessary
 	if (useColorSensor == true) {
 		if (colorSensor.begin()) {
 			Serial.println("Found sensor");
@@ -42,7 +69,7 @@ void setup() {
 
 	// thanks PhilB for this gamma table!
 	// it helps convert RGB colors to what humans see
-	for (int i = 0; i < 256; i++) {
+	for (uint16_t i = 0; i < 256; i++) {
 		float x = i;
 		x /= 255;
 		x = pow(x, 2.5);
@@ -61,62 +88,117 @@ void loop() {
 		delMe = 0;
 	}
 
-	//Turn the light off
-//	colorSensor.setInterrupt(true);
+	value += encoder->getValue();
 
-//	for(int i=0;i<NUM_LED;i++){
-//		strip[i] = CRGB::Black;
+	if (value != last) {
+		last = value;
+
+		//Why wont a loop work here? WTF
+		settings[0] = CRGB::Black;
+		settings[1] = CRGB::Black;
+		settings[2] = CRGB::Black;
+		settings[3] = CRGB::Black;
+		settings[4] = CRGB::Black;
+
+		if (value == 4) {
+			settings[0].setHue(0);
+			colorCounter = random8();
+			for (uint16_t j = 0; j < NUM_INFINITY_LED; j++) {
+				infinity[j].setHue(colorCounter);
+			}
+			FastLED.show();
+			meteorChaser(true, 14, 20, 160, true);
+		}
+		if (value >= 8) {
+			settings[1].setHue(45);
+		}
+		if (value >= 12) {
+			settings[2].setHue(90);
+		}
+		if (value >= 16) {
+			settings[3].setHue(135);
+//			for (i = 0; i < NUM_INFINITY_LED; i++) {
+//				settings[i] = CRGB::Black;
+//			}
+		}
+		if (value > 20) {
+			settings[4].setHue(180);
+		}
+		if (value > 30) {
+			settings[5].setHue(215);
+		}
+		FastLED.show();
+		Serial.print("Encoder Value: ");
+		Serial.println(value);
+	}
+
+	ClickEncoder::Button b = encoder->getButton();
+	if (b != ClickEncoder::Open) {
+		Serial.print("Button: ");
+#define VERBOSECASE(label) case label: Serial.println(#label); break;
+		switch (b) {
+		VERBOSECASE(ClickEncoder::Pressed)
+			;
+		VERBOSECASE(ClickEncoder::Held)
+		VERBOSECASE(ClickEncoder::Released)
+		VERBOSECASE(ClickEncoder::Clicked)
+		case ClickEncoder::DoubleClicked:
+			Serial.println("ClickEncoder::DoubleClicked");
+			encoder->setAccelerationEnabled(!encoder->getAccelerationEnabled());
+			Serial.print("  Acceleration is ");
+			Serial.println((encoder->getAccelerationEnabled()) ? "enabled" : "disabled");
+			break;
+		}
+	}
+
+//	colorCounter = random8();
+//	for (int i = 0; i < NUM_INFINITY_LED; i++) {
+//		infinity[i].setHue(colorCounter);
 //	}
 //	FastLED.show();
+//	meteorChaser(true, 14, 20, 160, true);
+//	for (int i = 0; i < 500; i++) {
+//	shift(infinity, true);
+//	FastLED.show();
+//	delay(20);
+//	}
 
-	colorCounter = random8();
-	for (int i = 0; i < NUM_LED; i++) {
-		strip[i].setHue(colorCounter);
-	}
-	FastLED.show();
-	meteorChaser(true, 14, 20, 160, true);
-	for (int i = 0; i < 500; i++) {
-		shift(true);
-		FastLED.show();
-		delay(20);
-	}
-
-	wipeRainbow(25);
-	halfTopBottom(true, 23, strip[15], strip[45]);
-	for (int i = 0; i < NUM_LED; i++) {
-		shift(false);
-		FastLED.show();
-		delay(20);
-	}
-
-	chasingInfinity(true, 10);
-	chasingInfinity(true, 20);
-	chasingFromSides(false, 45);
-	chasingInfinity(true, 50);
-	chasingFromSides(false, 30);
-	chasingInfinity(false, 10);
-	chasingInfinity(false, 20);
-	chasingInfinity(false, 50);
-	doubleSymmetricalFlipFlow(30);
-	chasingFromSides(false, 30);
-	doubleSymmetricalFlipFlow(15);
-	chasingFromSides(false, 30);
-	doubleSymmetricalFlipFlow(15);
-	doubleSymmetricalFlipFlow(30);
-	doubleSymmetricalFlipFlow(30);
-	doubleSymmetricalFlipFlow(15);
-	checkColorCounter(colorCounter, true);
-
-	wipeRainbow(25);
-	while (delMe < 750) {
-		rainbowShift(10, false, colorCounter);
-		delMe++;
-	}
+//	wipeRainbow(25);
+//	halfTopBottom(true, 23, infinity[15], infinity[45]);
+//	for (int i = 0; i < NUM_INFINITY_LED; i++) {
+//		shift(infinity, false);
+//		FastLED.show();
+//		delay(20);
+//	}
+//
+//	chasingInfinity(true, 10);
+//	chasingInfinity(true, 20);
+//	chasingFromSides(false, 45);
+//	chasingInfinity(true, 50);
+//	chasingFromSides(false, 30);
+//	chasingInfinity(false, 10);
+//	chasingInfinity(false, 20);
+//	chasingInfinity(false, 50);
+//	doubleSymmetricalFlipFlow(30);
+//	chasingFromSides(false, 30);
+//	doubleSymmetricalFlipFlow(15);
+//	chasingFromSides(false, 30);
+//	doubleSymmetricalFlipFlow(15);
+//	doubleSymmetricalFlipFlow(30);
+//	doubleSymmetricalFlipFlow(30);
+//	doubleSymmetricalFlipFlow(15);
+//	checkColorCounter(colorCounter, true);
+//
+//	wipeRainbow(25);
+//	while (delMe < 750) {
+//		rainbowShift(10, false, colorCounter);
+//		delMe++;
+//	}
 }
 
 void wipeRainbow(int delayTime) {
-	for (uint8_t i = 0; i <= NUM_LED; i++) {
-		fill_rainbow(&(strip[0]), i, colorCounter);
+	for (uint8_t i = 0; i <= NUM_INFINITY_LED; i++) {
+		fill_rainbow(&(infinity[0]), i, colorCounter);
 		FastLED.show();
 		delay(delayTime);
 	}
@@ -128,9 +210,9 @@ void rainbowShift(int delayTime, bool changeDirection, int startHue) {
 		colorCounter = startHue;
 	}
 	if (changeDirection == true) {
-		fill_rainbow(&(strip[0]), NUM_LED, 255 - colorCounter);
+		fill_rainbow(&(infinity[0]), NUM_INFINITY_LED, 255 - colorCounter);
 	} else {
-		fill_rainbow(&(strip[0]), NUM_LED, colorCounter);
+		fill_rainbow(&(infinity[0]), NUM_INFINITY_LED, colorCounter);
 	}
 	FastLED.show();
 	delay(delayTime);
@@ -139,8 +221,8 @@ void rainbowShift(int delayTime, bool changeDirection, int startHue) {
 
 void wipeInfinity(int delayTime) {
 	checkColorCounter(colorCounter, true);
-	for (uint8_t i = 0; i < NUM_LED; i++) {
-		setStrip(strip, i);
+	for (uint8_t i = 0; i < NUM_INFINITY_LED; i++) {
+		setStrip(infinity, i);
 		FastLED.show();
 		delay(delayTime);
 		colorCounter += 5;
@@ -148,10 +230,10 @@ void wipeInfinity(int delayTime) {
 }
 
 void middleDoubleSymmetrical() {
-	uint8_t left = 0, right = NUM_LED - 1;
+	uint8_t left = 0, right = NUM_INFINITY_LED - 1;
 	while (left < 30 && right > 30) {
-		setStrip(strip, left);
-		setStrip(strip, right);
+		setStrip(infinity, left);
+		setStrip(infinity, right);
 		FastLED.show();
 		left += 1;
 		right -= 1;
@@ -165,10 +247,10 @@ void doubleSymmetricalFlipFlow(int delayTime) {
 	getSensorData();
 	if (flipFlopState == true) {
 		left = 0;
-		right = NUM_LED - 1;
+		right = NUM_INFINITY_LED - 1;
 		while (left < 30 && right > 30) {
-			setStrip(strip, left);
-			setStrip(strip, right);
+			setStrip(infinity, left);
+			setStrip(infinity, right);
 			FastLED.show();
 			left += 1;
 			right -= 1;
@@ -182,8 +264,8 @@ void doubleSymmetricalFlipFlow(int delayTime) {
 		left = 30;
 		right = 30;
 		while (right > 0 && left < 60) {
-			setStrip(strip, left);
-			setStrip(strip, right);
+			setStrip(infinity, left);
+			setStrip(infinity, right);
 
 			FastLED.show();
 
@@ -205,14 +287,14 @@ void chasingInfinity(bool changeChaseDirection, int delayTime) {
 	checkColorCounter(colorCounter, true);
 	getSensorData();
 	if (changeChaseDirection == true) {
-		for (i = 0; i < NUM_LED; i++) {
-			setStrip(strip, i);
+		for (i = 0; i < NUM_INFINITY_LED; i++) {
+			setStrip(infinity, i);
 			FastLED.show();
 			delay(delayTime);
 		}
 	} else {
-		for (i = NUM_LED; i >= 1; --i) {
-			setStrip(strip, i - 1);
+		for (i = NUM_INFINITY_LED; i >= 1; --i) {
+			setStrip(infinity, i - 1);
 			FastLED.show();
 			delay(delayTime);
 		}
@@ -229,10 +311,10 @@ void chasingFromSides(bool changeChaseDirection, int delayTime) {
 	rightTop = 15; //15 -> 0
 	rightBottom = 15; //15 -> 30
 	while (leftBottom < 60 && leftTop >= 30 && rightBottom < 30 && rightTop >= 0) {
-		setStrip(strip, leftTop);
-		setStrip(strip, leftBottom);
-		setStrip(strip, rightTop);
-		setStrip(strip, rightBottom);
+		setStrip(infinity, leftTop);
+		setStrip(infinity, leftBottom);
+		setStrip(infinity, rightTop);
+		setStrip(infinity, rightBottom);
 		FastLED.show();
 		leftTop--;
 		leftBottom++;
@@ -240,8 +322,8 @@ void chasingFromSides(bool changeChaseDirection, int delayTime) {
 		rightBottom++;
 		delay(delayTime);
 	}
-	setStrip(strip, leftTop);
-	setStrip(strip, rightTop);
+	setStrip(infinity, leftTop);
+	setStrip(infinity, rightTop);
 
 	colorCounter += 33;
 }
@@ -260,11 +342,11 @@ void halfTopBottom(bool animate, uint16_t animationDelay, CRGB colorTop, CRGB co
 		Serial.print(" -  RightAnchor: ");
 		Serial.println(rightAnchor);
 
-		setStrip(strip, rightAnchor, colorTop);
-		setStrip(strip, leftAnchor, colorBottom);
+		setStrip(infinity, rightAnchor, colorTop);
+		setStrip(infinity, leftAnchor, colorBottom);
 		rightAnchor++;
 		leftAnchor++;
-		if (leftAnchor == NUM_LED) {
+		if (leftAnchor == NUM_INFINITY_LED) {
 			leftAnchor = 0;
 		}
 		if (animate == true) {
@@ -289,8 +371,8 @@ void meteorChaser(bool animate, uint8_t tailLength, uint16_t meteorBodyPixel, ui
 	int fadeSpectrum = fadeValue;
 	int fadeIncrement = (256 - fadeValue) / tailLength;
 	for (i = meteorBodyPixel; i > (meteorBodyPixel - tailLength); i--) {
-		strip[i].setHue(meteorHue);
-		strip[i].fadeLightBy(fadeSpectrum);
+		infinity[i].setHue(meteorHue);
+		infinity[i].fadeLightBy(fadeSpectrum);
 		if (animate == true) {
 			FastLED.show();
 			delay(20);
@@ -300,37 +382,7 @@ void meteorChaser(bool animate, uint8_t tailLength, uint16_t meteorBodyPixel, ui
 	//Do an optional rainbow tail? Just use rainbow fill on the tail section instead.
 }
 
-//Check out the memmove function to maybe do it more quickly
-void shift(bool changeDirection) {
-	CRGB wrapAroundPixel;
-	if (changeDirection == true) {
-		wrapAroundPixel = strip[NUM_LED - 1];
-		for (int i = NUM_LED - 1; i > 0; i--) {
-			strip[i] = strip[i - 1];
-		}
-		strip[0] = wrapAroundPixel;
-	} else {
-		wrapAroundPixel = strip[0];
-		for (int i = 0; i < NUM_LED; i++) {
-			strip[i] = strip[i + 1];
-		}
-		strip[NUM_LED - 1] = wrapAroundPixel;
-	}
-}
-
 /*Helper Methods*/
-
-void setStrip(CRGB strip[], uint16_t index) {
-	if (useColorSensor == true) {
-		strip[index].setRGB(gammatable[(int) r], gammatable[(int) g], gammatable[(int) b]);
-	} else {
-		strip[index].setHue(colorCounter);
-	}
-}
-
-void setStrip(CRGB strip[], uint16_t index, CRGB color) {
-	strip[index] = color;
-}
 
 void getSensorData() {
 	uint16_t clear, red, green, blue;

@@ -32,7 +32,12 @@ bool useColorSensor = false;
 
 int16_t last, value;
 
-uint16_t delMe = 0;
+// 0 = select pattern
+// 1 = select speed
+// 2 = select brightness
+// 3 = select color sensor on/off
+uint8_t settingMode = 0;
+uint8_t showSpeed = 20;
 
 // rgb to use for calcualted color sensor values functions will use
 float r, g, b;
@@ -44,15 +49,16 @@ void timerIsr() {
 void setup() {
 	Serial.begin(9600);
 
-//Initialize FastLED for the infinity symbol strip
+	//Initialize FastLED for the infinity symbol strip and the settings strip
 	FastLED.addLeds<NEOPIXEL, PIN_INFINITY_STRIP>(infinity, NUM_INFINITY_LED);
 	FastLED.addLeds<NEOPIXEL, PIN_SETTINGS_STRIP>(settings, NUM_SETTING_LED);
 
+	//Initialize the encoder (knob) and it's interrupt
 	encoder = new ClickEncoder(0, 1, 6, 2, false);
-
 	Timer1.initialize(1000);
 	Timer1.attachInterrupt(timerIsr);
 
+	//Initial value for the 'last' encoder value
 	last = -1;
 
 	//Start the color sensor if necessary
@@ -84,14 +90,19 @@ void setup() {
 }
 
 void loop() {
-	if (delMe >= 750) {
-		delMe = 0;
-	}
-
 	value += encoder->getValue();
 
+	ClickEncoder::Button b = encoder->getButton();
+	if (b != ClickEncoder::Open) {
+		if (ClickEncoder::Pressed) {
+			settingMode++;
+			if (settingMode > 3) {
+				settingMode = 0;
+			}
+		}
+	}
+
 	if (value != last) {
-		last = value;
 
 		//Why wont a loop work here? WTF
 		settings[0] = CRGB::Black;
@@ -100,39 +111,67 @@ void loop() {
 		settings[3] = CRGB::Black;
 		settings[4] = CRGB::Black;
 
-		if (value == 4) {
-			settings[0].setHue(0);
-			colorCounter = random8();
-			for (uint16_t j = 0; j < NUM_INFINITY_LED; j++) {
-				infinity[j].setHue(colorCounter);
+		if (settingMode == 0) {
+
+		}
+
+		switch (settingMode) {
+		case 0:
+			if (value <= 4) {
+				settings[0].setHue(0);
+				colorCounter = random8();
+				for (uint16_t j = 0; j < NUM_INFINITY_LED; j++) {
+					infinity[j].setHue(colorCounter);
+				}
+				FastLED.show();
+				meteorChaser(true, 14, 20, 160, true);
+			}
+			if (value >= 8) {
+				wipeRainbow(25);
+				settings[1].setHue(45);
+			}
+			if (value >= 12) {
+				settings[2].setHue(90);
+			}
+			if (value >= 16) {
+				settings[3].setHue(135);
+				//			for (i = 0; i < NUM_INFINITY_LED; i++) {
+				//				settings[i] = CRGB::Black;
+				//			}
+			}
+			if (value > 20) {
+				settings[4].setHue(180);
+			}
+			if (value > 30) {
+				settings[5].setHue(215);
 			}
 			FastLED.show();
-			meteorChaser(true, 14, 20, 160, true);
+			Serial.print("Encoder Value: ");
+			Serial.println(value);
+
+			last = value;
+			break;
+		case 1:
+			if (value > last) {
+				showSpeed++;
+			} else {
+				showSpeed--;
+			}
+			break;
+		case 2:
+			break;
+		default:
+			;
 		}
-		if (value >= 8) {
-			settings[1].setHue(45);
-		}
-		if (value >= 12) {
-			settings[2].setHue(90);
-		}
-		if (value >= 16) {
-			settings[3].setHue(135);
-//			for (i = 0; i < NUM_INFINITY_LED; i++) {
-//				settings[i] = CRGB::Black;
-//			}
-		}
-		if (value > 20) {
-			settings[4].setHue(180);
-		}
-		if (value > 30) {
-			settings[5].setHue(215);
-		}
-		FastLED.show();
-		Serial.print("Encoder Value: ");
-		Serial.println(value);
+
 	}
 
-	ClickEncoder::Button b = encoder->getButton();
+	if (settingMode == 0) {
+		shift(infinity, true);
+		FastLED.show();
+		delay(showSpeed);
+	}
+
 	if (b != ClickEncoder::Open) {
 		Serial.print("Button: ");
 #define VERBOSECASE(label) case label: Serial.println(#label); break;
@@ -204,21 +243,6 @@ void wipeRainbow(int delayTime) {
 	}
 }
 
-void rainbowShift(int delayTime, bool changeDirection, int startHue) {
-	checkColorCounter(colorCounter, true);
-	if (startHue != 0) {
-		colorCounter = startHue;
-	}
-	if (changeDirection == true) {
-		fill_rainbow(&(infinity[0]), NUM_INFINITY_LED, 255 - colorCounter);
-	} else {
-		fill_rainbow(&(infinity[0]), NUM_INFINITY_LED, colorCounter);
-	}
-	FastLED.show();
-	delay(delayTime);
-	colorCounter += 1;
-}
-
 void wipeInfinity(int delayTime) {
 	checkColorCounter(colorCounter, true);
 	for (uint8_t i = 0; i < NUM_INFINITY_LED; i++) {
@@ -244,7 +268,7 @@ void middleDoubleSymmetrical() {
 void doubleSymmetricalFlipFlow(int delayTime) {
 	uint8_t left, right;
 	checkColorCounter(colorCounter, true);
-	getSensorData();
+	getColorSensorData();
 	if (flipFlopState == true) {
 		left = 0;
 		right = NUM_INFINITY_LED - 1;
@@ -285,7 +309,7 @@ void doubleSymmetricalFlipFlow(int delayTime) {
 void chasingInfinity(bool changeChaseDirection, int delayTime) {
 	uint8_t i;
 	checkColorCounter(colorCounter, true);
-	getSensorData();
+	getColorSensorData();
 	if (changeChaseDirection == true) {
 		for (i = 0; i < NUM_INFINITY_LED; i++) {
 			setStrip(infinity, i);
@@ -305,7 +329,7 @@ void chasingInfinity(bool changeChaseDirection, int delayTime) {
 void chasingFromSides(bool changeChaseDirection, int delayTime) {
 	uint8_t leftTop, rightTop, leftBottom, rightBottom;
 	checkColorCounter(colorCounter, true);
-	getSensorData();
+	getColorSensorData();
 	leftTop = 45; //45 -> 30
 	leftBottom = 45; //45 -> 60
 	rightTop = 15; //15 -> 0
@@ -328,7 +352,8 @@ void chasingFromSides(bool changeChaseDirection, int delayTime) {
 	colorCounter += 33;
 }
 
-///*Trying a new approach here. This should just put it into a state that can be moved with shift.*/
+/*Trying a new approach here. This should just put it into a state that can be moved with shift.*/
+/*Need to convert all patterns to this model, it makes it you are never stuck in a method for any period of time*/
 void halfTopBottom(bool animate, uint16_t animationDelay, CRGB colorTop, CRGB colorBottom) {
 	Serial.println("Starting function");
 	uint16_t rightAnchor = 15;
@@ -360,10 +385,6 @@ void halfTopBottom(bool animate, uint16_t animationDelay, CRGB colorTop, CRGB co
 	}
 }
 
-void halfRightLeft(bool animate) {
-
-}
-
 //TODO: Impletment fadeValue
 void meteorChaser(bool animate, uint8_t tailLength, uint16_t meteorBodyPixel, uint16_t fadeValue, bool rainbowTail) {
 	uint16_t i;
@@ -383,8 +404,7 @@ void meteorChaser(bool animate, uint8_t tailLength, uint16_t meteorBodyPixel, ui
 }
 
 /*Helper Methods*/
-
-void getSensorData() {
+void getColorSensorData() {
 	uint16_t clear, red, green, blue;
 	if (useColorSensor == true) {
 		// it takes length of the integration time to read a color

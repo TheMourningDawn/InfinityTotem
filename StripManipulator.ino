@@ -3,7 +3,7 @@
 */
 
 
-void setStrip(CRGB srip[], uint16_t index) {
+void setStrip(CRGB strip[], uint16_t index) {
 	if (useColorSensor == true) {
 		strip[index].setRGB(gammatable[(int) r], gammatable[(int) g], gammatable[(int) b]);
 	} else {

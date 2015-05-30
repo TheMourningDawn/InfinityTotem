@@ -1,9 +1,16 @@
 /*
-  Methods to change the state of the strip
-*/
+ Methods to change the state of the strip
+ */
 
+void setStrip(CRGB strip[], CRGB color) {
 
-void setStrip(CRGB strip[], uint16_t index) {
+}
+
+void setStrip(CRGB strip[]) {
+
+}
+
+void setPixel(CRGB strip[], uint16_t index) {
 	if (useColorSensor == true) {
 		strip[index].setRGB(gammatable[(int) r], gammatable[(int) g], gammatable[(int) b]);
 	} else {
@@ -11,7 +18,7 @@ void setStrip(CRGB strip[], uint16_t index) {
 	}
 }
 
-void setStrip(CRGB strip[], uint16_t index, CRGB color) {
+void setPixel(CRGB strip[], uint16_t index, CRGB color) {
 	strip[index] = color;
 }
 

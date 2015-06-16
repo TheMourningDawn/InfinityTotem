@@ -11,7 +11,7 @@ void displaySettingMode() {
 	if (settingMode == 0) {
 		flashSettingsStrip(CRGB::Blue, 10, 2);
 	} else if (settingMode == 1) {
-		flashSettingsStrip(CRGB::Red, 10, 2);
+		flashSettingsStrip(CRGB::Green, 10, 2);
 	}
 }
 

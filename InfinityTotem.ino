@@ -51,9 +51,9 @@ void timerIsr() {
 }
 
 void setup() {
-//	Serial.begin(9600);
+	Serial.begin(9600);
 
-	//Initialize FastLED for the infinity symbol strip and the settings strip
+//Initialize FastLED for the infinity symbol strip and the settings strip
 	FastLED.addLeds<NEOPIXEL, PIN_INFINITY_STRIP>(infinity, NUM_INFINITY_LED);
 	FastLED.addLeds<NEOPIXEL, PIN_SETTINGS_STRIP>(settings, NUM_SETTING_LED);
 
@@ -91,7 +91,7 @@ void setup() {
 		}
 	}
 }
-
+CRGB randoColorForNow = CRGB::Blue;
 void loop() {
 	currentEncoderValue += encoder->getValue();
 
@@ -113,63 +113,124 @@ void loop() {
 	}
 
 	if (currentEncoderValue != previousEncoderValue) {
+		randoColorForNow += 20;
 		setSettingStrip(CRGB::Black, 5);
-		switch (settingMode) {
-		case 0:
-			animationSelectMode();
-			break;
-		case 1:
-			speedSelectMode();
-			break;
-		case 2:
-			//Will be brightness if possible
-			break;
-		case 3:
-			//Use the color sensor, or not
-			break;
-		default:
-			;
-		}
+		changeSettingsMode();
 		previousEncoderValue = currentEncoderValue;
 	}
-	shift(infinity, direction);
+
+	runAnimation();
 	FastLED.show();
-	delay(showSpeed);
+}
+
+void changeSettingsMode() {
+	switch (settingMode) {
+	case 0:
+		animationSelectMode();
+		break;
+	case 1:
+		//Color select mode
+		colorCounter += 5;
+		previousEncoderValue = currentEncoderValue; //this is dumb
+		animationSelectMode();
+		checkColorCounter(colorCounter);
+		break;
+	case 2:
+		speedSelectMode();
+		break;
+	case 3:
+		if (currentEncoderValue > previousEncoderValue) {
+			for (int i = 0; i < NUM_INFINITY_LED; i++) {
+				infinity[i] += 5;
+			}
+		} else if (currentEncoderValue < previousEncoderValue) {
+			for (int i = 0; i < NUM_INFINITY_LED; i++) {
+				infinity[i] -= 5;
+			}
+		}
+		//Will be brightness if possible
+		break;
+	default:
+		;
+	}
+}
+
+void runAnimation() {
+	switch (settingValue) {
+	case 2:
+		cycleSolid();
+		delay(showSpeed);
+		break;
+	case 4:
+		middleFanout(30);
+		break;
+	case 5:
+		chasingFromSides(false, showSpeed);
+		break;
+	case 6:
+		chasingInfinity(true, showSpeed);
+		break;
+	case 8:
+		blinkRandom(1, true);
+		break;
+	default:
+		shift(infinity, direction);
+		delay(showSpeed);
+		break;
+	}
+	FastLED.show();
 }
 
 void animationSelectMode() {
+	CRGB selectColor1 = CRGB::Red;
+	CRGB selectColor2 = CRGB::Blue;
+	CRGB selectColor3 = CRGB::Green;
+	CRGB selectColor4 = CRGB::Tomato;
+	CRGB selectColor5 = CRGB::DarkViolet;
+	Serial.println(settingValue);
 	if (currentEncoderValue > previousEncoderValue) {
 		settingValue++;
 	} else if (currentEncoderValue < previousEncoderValue) {
 		settingValue--;
 	}
-	if (settingValue <= 4) {
-		settings[0].setHue(0);
-		meteorChaser(true, 14, 20, 160, true);
+//loop the settings value back around - need a function
+	if (settingValue > 10) {
+		settingValue = 0;
+	}
+	if (settingValue <= 0) {
+		settingValue = 10;
+	}
+//Replace this with switch case
+	if (settingValue <= 1) {
+		setSettingStrip(selectColor1, 1);
+		colorCounter = random8();
+		fillSolid(colorCounter);
+		colorCounter = random8();
+		meteorChaser(20, 14, 160, true);
+	} else if (settingValue <= 2) {
+		setSettingStrip(selectColor1, 2);
+		fillSolid(colorCounter);
+	} else if (settingValue <= 3) {
+		setSettingStrip(selectColor1, 3);
+		wipeInfinity(25);
+	} else if (settingValue <= 4) {
+		setSettingStrip(selectColor1, 4);
 	} else if (settingValue <= 5) {
-		settings[0].setHue(0);
-		settings[1].setHue(45);
-		wipeInfinity(25); //need a new infinity wipe that doesn't suck
+		setSettingStrip(selectColor1, 5);
 	} else if (settingValue <= 6) {
-		settings[0].setHue(0);
-		settings[1].setHue(45);
-		settings[2].setHue(90);
-		doubleSymmetricalFlipFlow(30);
+		setSettingStrip(selectColor2, 1);
 	} else if (settingValue <= 7) {
-		settings[0].setHue(0);
-		settings[1].setHue(45);
-		settings[2].setHue(90);
-		settings[3].setHue(135);
-		chasingFromSides(false, 30);
+		setSettingStrip(selectColor2, 2);
+		fill_solid(&(infinity[0]), 60, CRGB::Black);
+		meteorChaser(15, 12, 160, false);
 	} else if (settingValue <= 8) {
-		settings[0].setHue(0);
-		settings[1].setHue(45);
-		settings[2].setHue(90);
-		settings[3].setHue(135);
-		settings[4].setHue(180);
-		chasingInfinity(true, 10);
-	} else if (settingValue >= 9) {
-		setSettingStrip(CRGB::Blue, 5);
+
+	} else if (settingValue <= 9) {
+		fourPoints(7, 21, 35, 49);
+	} else if (settingValue >= 10) {
+		setSettingStrip(selectColor2, 3);
+		fillSolid(colorCounter);
+		meteorChaser(30, 26, 160, true);
 	}
 	FastLED.show();
 }
@@ -211,14 +272,8 @@ void getColorSensorData() {
 }
 
 //Shouldn't really need this if a uint8 is used. Will just roll over at 255
-void checkColorCounter(uint16_t &colorCounter, bool leaveMod) {
-	if (colorCounter > 255) {
-		if (leaveMod == true) {
-			colorCounter = colorCounter % 255;
-		} else {
-			colorCounter = 0;
-		}
-	}
+void checkColorCounter(uint16_t &colorCounter) {
+	colorCounter = colorCounter % 255;
 }
 
 void flipFlop(bool &flopToFlip) {

@@ -39,3 +39,43 @@ void shift(CRGB strip[], bool changeDirection) {
 		strip[NUM_INFINITY_LED - 1] = wrapAroundPixel;
 	}
 }
+
+int runnerPixel = 0; //uint8 signed or unsigned?
+void paint(CRGB strip[], CRGB color, bool changeDirection) {
+	if (runnerPixel == NUM_INFINITY_LED) { //using this constant wont jive with other strips...
+		runnerPixel = 0;
+	}
+	if (runnerPixel < 0) {
+		runnerPixel = NUM_INFINITY_LED;
+	}
+	strip[runnerPixel] = color;
+	if (changeDirection == true) {
+		runnerPixel++;
+	} else {
+		runnerPixel--;
+	}
+}
+
+void cycleSolid() {
+	colorCounter++;
+	checkColorCounter(colorCounter);
+	for (int i = 0; i < NUM_INFINITY_LED; i++) {
+		infinity[i].setHue(colorCounter);
+	}
+}
+
+//do multiple like it says, dick.
+void blinkRandom(uint8_t numberRandomPixels, bool randomColor) {
+	uint8_t randomPixel = random8(60);
+	uint8_t randomHue = random8();
+	for (int i = 0; i < NUM_INFINITY_LED; i++) {
+		infinity[i] = CRGB::Black;
+		if(randomPixel == i) {
+			if(randomColor == true) {
+				infinity[i].setHue(colorCounter);
+			} else {
+				infinity[i].setHue(randomHue);
+			}
+		}
+	}
+}

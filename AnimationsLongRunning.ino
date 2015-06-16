@@ -26,7 +26,6 @@ void halfTopBottom(bool animate, uint16_t animationDelay, CRGB colorTop, CRGB co
 			leftAnchor = 0;
 		}
 		if (animate == true) {
-			Serial.println("Justa bout to show");
 			FastLED.show();
 			delay(animationDelay);
 		}
@@ -36,22 +35,10 @@ void halfTopBottom(bool animate, uint16_t animationDelay, CRGB colorTop, CRGB co
 	}
 }
 
-void middleDoubleSymmetrical() {
-	uint8_t left = 0, right = NUM_INFINITY_LED - 1;
-	while (left < 30 && right > 30) {
-		setPixel(infinity, left);
-		setPixel(infinity, right);
-		FastLED.show();
-		left += 1;
-		right -= 1;
-		delay(25);
-	}
-}
 
-/* All these need to somehow be converted to something that doesn't block the loop so much*/
-void doubleSymmetricalFlipFlow(int delayTime) {
+void middleFanout(int delayTime) {
 	uint8_t left, right;
-	checkColorCounter(colorCounter, true);
+	checkColorCounter(colorCounter);
 	getColorSensorData();
 	if (flipFlopState == true) {
 		left = 0;
@@ -74,7 +61,6 @@ void doubleSymmetricalFlipFlow(int delayTime) {
 		while (right > 0 && left < 60) {
 			setPixel(infinity, left);
 			setPixel(infinity, right);
-
 			FastLED.show();
 
 			left += 1;
@@ -92,7 +78,7 @@ void doubleSymmetricalFlipFlow(int delayTime) {
 
 void chasingInfinity(bool changeChaseDirection, int delayTime) {
 	uint8_t i;
-	checkColorCounter(colorCounter, true);
+	checkColorCounter(colorCounter);
 	getColorSensorData();
 	if (changeChaseDirection == true) {
 		for (i = 0; i < NUM_INFINITY_LED; i++) {
@@ -112,7 +98,7 @@ void chasingInfinity(bool changeChaseDirection, int delayTime) {
 
 void chasingFromSides(bool changeChaseDirection, int delayTime) {
 	uint8_t leftTop, rightTop, leftBottom, rightBottom;
-	checkColorCounter(colorCounter, true);
+	checkColorCounter(colorCounter);
 	getColorSensorData();
 	leftTop = 45; //45 -> 30
 	leftBottom = 45; //45 -> 60

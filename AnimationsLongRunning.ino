@@ -38,7 +38,6 @@ void halfTopBottom(bool animate, uint16_t animationDelay, CRGB colorTop, CRGB co
 
 void middleFanout(int delayTime) {
 	uint8_t left, right;
-	checkColorCounter(colorCounter);
 	getColorSensorData();
 	if (flipFlopState == true) {
 		left = 0;
@@ -78,7 +77,6 @@ void middleFanout(int delayTime) {
 
 void chasingInfinity(bool changeChaseDirection, int delayTime) {
 	uint8_t i;
-	checkColorCounter(colorCounter);
 	getColorSensorData();
 	if (changeChaseDirection == true) {
 		for (i = 0; i < NUM_INFINITY_LED; i++) {
@@ -98,7 +96,6 @@ void chasingInfinity(bool changeChaseDirection, int delayTime) {
 
 void chasingFromSides(bool changeChaseDirection, int delayTime) {
 	uint8_t leftTop, rightTop, leftBottom, rightBottom;
-	checkColorCounter(colorCounter);
 	getColorSensorData();
 	leftTop = 45; //45 -> 30
 	leftBottom = 45; //45 -> 60

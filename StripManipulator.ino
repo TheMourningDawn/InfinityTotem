@@ -58,7 +58,6 @@ void paint(CRGB strip[], CRGB color, bool changeDirection) {
 
 void cycleSolid() {
 	colorCounter++;
-	checkColorCounter(colorCounter);
 	for (int i = 0; i < NUM_INFINITY_LED; i++) {
 		infinity[i].setHue(colorCounter);
 	}

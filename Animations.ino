@@ -32,7 +32,6 @@ void wipeRainbow(int delayTime) {
 }
 
 void wipeInfinity(int delayTime) {
-	checkColorCounter (colorCounter);
 	for (uint8_t i = 0; i < NUM_INFINITY_LED; i++) {
 		setPixel(infinity, i);
 		FastLED.show();

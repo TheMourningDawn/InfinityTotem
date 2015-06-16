@@ -5,6 +5,7 @@ void cycleSettingsMode() {
 	}
 	displaySettingMode();
 	currentEncoderValue = 0;
+	previousEncoderValue = currentEncoderValue; //this is dumb
 }
 
 void displaySettingMode() {

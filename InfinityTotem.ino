@@ -30,7 +30,7 @@ CRGB infinity[NUM_INFINITY_LED];
 CRGB settings[NUM_SETTING_LED];
 
 bool flipFlopState = true;
-uint16_t colorCounter = 0;
+uint8_t colorCounter = 0;
 
 // 0 = select pattern
 // 1 = select speed
@@ -134,8 +134,7 @@ void changeSettingsMode() {
 	case 1:
 		//Color select mode
 		colorCounter += 5;
-		checkColorCounter(colorCounter);
-		previousEncoderValue = currentEncoderValue; //this is dumb
+		previousEncoderValue = currentEncoderValue; //this is dumb. I'm dumb. Not sure what to do.
 		animationSelectMode();
 		break;
 	case 2:
@@ -159,26 +158,17 @@ void changeSettingsMode() {
 }
 
 void animationSelectMode() {
-	if (currentEncoderValue > previousEncoderValue) {
-		settingValue++;
-	} else if (currentEncoderValue < previousEncoderValue) {
-		settingValue--;
-	}
-	//loop the settings value back around - need a function
-	if (settingValue >= 254) {
-		settingValue = 9;
-	}
-	if (settingValue > 10) {
-		settingValue = 0;
-	}
-	Serial.println(settingValue);
+	changeSettingValue();
+
 	switch (settingValue) {
 	case 0: //shift
 		fill_solid(&(infinity[0]), 60, CRGB::Black);
 		meteorChaser(15, 12, 160, false);
 		break;
 	case 1: //shift
-		fill_solid(&(infinity[0]), 60, CRGB::Black);
+		if (settingMode == 0) {
+			fill_solid(&(infinity[0]), 60, CRGB::Black);
+		}
 		fourPoints(7, 21, 35, 49);
 		break;
 	case 2: //shift
@@ -266,9 +256,22 @@ void getColorSensorData() {
 	}
 }
 
-//Shouldn't really need this if a uint8 is used. Will just roll over at 255
-void checkColorCounter(uint16_t &colorCounter) {
-	colorCounter = colorCounter % 255;
+void changeSettingValue() {
+	if (currentEncoderValue > previousEncoderValue) {
+		settingValue++;
+	} else if (currentEncoderValue < previousEncoderValue) {
+		settingValue--;
+	}
+	checkSettingValueBoundries();
+}
+
+void checkSettingValueBoundries() {
+	if (settingValue >= 254) {
+		settingValue = 9;
+	}
+	if (settingValue > 10) {
+		settingValue = 0;
+	}
 }
 
 void flipFlop(bool &flopToFlip) {

@@ -53,7 +53,7 @@ void timerIsr() {
 void setup() {
 	Serial.begin(9600);
 
-//Initialize FastLED for the infinity symbol strip and the settings strip
+	//Initialize FastLED for the infinity symbol strip and the settings strip
 	FastLED.addLeds<NEOPIXEL, PIN_INFINITY_STRIP>(infinity, NUM_INFINITY_LED);
 	FastLED.addLeds<NEOPIXEL, PIN_SETTINGS_STRIP>(settings, NUM_SETTING_LED);
 
@@ -63,9 +63,9 @@ void setup() {
 	Timer1.attachInterrupt(timerIsr);
 
 	//Initial value for the previous encoder value
-	previousEncoderValue = -1;
+	previousEncoderValue = 0;
 
-	//Start the color sensor if necessary
+	//Start the color sensor. We dont care if it isn't working correctly.
 	if (useColorSensor == true) {
 		if (colorSensor.begin()) {
 			Serial.println("Found sensor");
@@ -90,8 +90,10 @@ void setup() {
 			gammatable[i] = x;
 		}
 	}
+
+	displaySettingMode();
+	animationSelectMode();
 }
-CRGB randoColorForNow = CRGB::Blue;
 void loop() {
 	currentEncoderValue += encoder->getValue();
 
@@ -112,11 +114,12 @@ void loop() {
 		}
 	}
 
-	if (currentEncoderValue != previousEncoderValue) {
-		randoColorForNow += 20;
-		setSettingStrip(CRGB::Black, 5);
-		changeSettingsMode();
-		previousEncoderValue = currentEncoderValue;
+//	if b was open, do this, if not dont...maybe stop the jumping on mode change?
+	if (b == ClickEncoder::Open) {
+		if (currentEncoderValue != previousEncoderValue) {
+			changeSettingsMode();
+			previousEncoderValue = currentEncoderValue;
+		}
 	}
 
 	runAnimation();
@@ -131,14 +134,15 @@ void changeSettingsMode() {
 	case 1:
 		//Color select mode
 		colorCounter += 5;
+		checkColorCounter(colorCounter);
 		previousEncoderValue = currentEncoderValue; //this is dumb
 		animationSelectMode();
-		checkColorCounter(colorCounter);
 		break;
 	case 2:
 		speedSelectMode();
 		break;
 	case 3:
+		//Changes the "brightness" value of the whole strip. Not exactly what you'd think...
 		if (currentEncoderValue > previousEncoderValue) {
 			for (int i = 0; i < NUM_INFINITY_LED; i++) {
 				infinity[i] += 5;
@@ -148,89 +152,80 @@ void changeSettingsMode() {
 				infinity[i] -= 5;
 			}
 		}
-		//Will be brightness if possible
 		break;
 	default:
 		;
 	}
 }
 
+void animationSelectMode() {
+	if (currentEncoderValue > previousEncoderValue) {
+		settingValue++;
+	} else if (currentEncoderValue < previousEncoderValue) {
+		settingValue--;
+	}
+	//loop the settings value back around - need a function
+	if (settingValue >= 254) {
+		settingValue = 9;
+	}
+	if (settingValue > 10) {
+		settingValue = 0;
+	}
+	Serial.println(settingValue);
+	switch (settingValue) {
+	case 0: //shift
+		fill_solid(&(infinity[0]), 60, CRGB::Black);
+		meteorChaser(15, 12, 160, false);
+		break;
+	case 1: //shift
+		fill_solid(&(infinity[0]), 60, CRGB::Black);
+		fourPoints(7, 21, 35, 49);
+		break;
+	case 2: //shift
+		colorCounter = random8();
+		fillSolid(colorCounter);
+		colorCounter = random8();
+		meteorChaser(20, 14, 160, true);
+		break;
+	case 3: //shift
+		fillSolid(colorCounter);
+		meteorChaser(30, 26, 160, true);
+		break;
+	case 4: //shift
+		wipeInfinity(25);
+		break;
+	case 5: //cycleSolid
+		fillSolid(colorCounter);
+		break;
+	default:
+		break;
+	}
+
+	FastLED.show();
+}
+
 void runAnimation() {
 	switch (settingValue) {
-	case 2:
+	case 5:
 		cycleSolid();
 		delay(showSpeed);
 		break;
-	case 4:
+	case 6:
 		middleFanout(30);
 		break;
-	case 5:
+	case 7:
 		chasingFromSides(false, showSpeed);
 		break;
-	case 6:
+	case 8:
 		chasingInfinity(true, showSpeed);
 		break;
-	case 8:
+	case 9:
 		blinkRandom(1, true);
 		break;
 	default:
 		shift(infinity, direction);
 		delay(showSpeed);
 		break;
-	}
-	FastLED.show();
-}
-
-void animationSelectMode() {
-	CRGB selectColor1 = CRGB::Red;
-	CRGB selectColor2 = CRGB::Blue;
-	CRGB selectColor3 = CRGB::Green;
-	CRGB selectColor4 = CRGB::Tomato;
-	CRGB selectColor5 = CRGB::DarkViolet;
-	Serial.println(settingValue);
-	if (currentEncoderValue > previousEncoderValue) {
-		settingValue++;
-	} else if (currentEncoderValue < previousEncoderValue) {
-		settingValue--;
-	}
-//loop the settings value back around - need a function
-	if (settingValue > 10) {
-		settingValue = 0;
-	}
-	if (settingValue <= 0) {
-		settingValue = 10;
-	}
-//Replace this with switch case
-	if (settingValue <= 1) {
-		setSettingStrip(selectColor1, 1);
-		colorCounter = random8();
-		fillSolid(colorCounter);
-		colorCounter = random8();
-		meteorChaser(20, 14, 160, true);
-	} else if (settingValue <= 2) {
-		setSettingStrip(selectColor1, 2);
-		fillSolid(colorCounter);
-	} else if (settingValue <= 3) {
-		setSettingStrip(selectColor1, 3);
-		wipeInfinity(25);
-	} else if (settingValue <= 4) {
-		setSettingStrip(selectColor1, 4);
-	} else if (settingValue <= 5) {
-		setSettingStrip(selectColor1, 5);
-	} else if (settingValue <= 6) {
-		setSettingStrip(selectColor2, 1);
-	} else if (settingValue <= 7) {
-		setSettingStrip(selectColor2, 2);
-		fill_solid(&(infinity[0]), 60, CRGB::Black);
-		meteorChaser(15, 12, 160, false);
-	} else if (settingValue <= 8) {
-
-	} else if (settingValue <= 9) {
-		fourPoints(7, 21, 35, 49);
-	} else if (settingValue >= 10) {
-		setSettingStrip(selectColor2, 3);
-		fillSolid(colorCounter);
-		meteorChaser(30, 26, 160, true);
 	}
 	FastLED.show();
 }

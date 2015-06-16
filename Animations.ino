@@ -60,19 +60,6 @@ void fourPoints(uint8_t point1, uint8_t point2 ,uint8_t point3 ,uint8_t point4) 
 	FastLED.show();
 }
 
-////Trying this out to see if it wont have a seam...
-//void rainbow(uint8_t wait) {
-//  uint16_t i, j;
-//
-//  for(j=0; j<256; j++) {
-//    for(i=0; i<strip.numPixels(); i++) {
-//      strip.setPixelColor(i, Wheel((i+j) & 255));
-//    }
-//    strip.show();
-//    delay(wait);
-//  }
-//}
-//
 //// Input a value 0 to 255 to get a color value.
 //// The colours are a transition r - g - b - back to r.
 //uint32_t Wheel(byte WheelPos) {

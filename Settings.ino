@@ -8,10 +8,27 @@ void cycleSettingsMode() {
 }
 
 void displaySettingMode() {
-	if (settingMode == 0) {
-		flashSettingsStrip(CRGB::Blue, 10, 2);
-	} else if (settingMode == 1) {
-		flashSettingsStrip(CRGB::Green, 10, 2);
+	switch (settingMode) {
+	case 0:
+		setSettingStrip(CRGB::Black, 5);
+		settings[0].setHue(15);
+		FastLED.show();
+		break;
+	case 1:
+		setSettingStrip(CRGB::Black, 5);
+		settings[1].setHue(65);
+		FastLED.show();
+		break;
+	case 2:
+		setSettingStrip(CRGB::Black, 5);
+		settings[2].setHue(115);
+		FastLED.show();
+		break;
+	case 3:
+		setSettingStrip(CRGB::Black, 5);
+		settings[3].setHue(165);
+		FastLED.show();
+		break;
 	}
 }
 

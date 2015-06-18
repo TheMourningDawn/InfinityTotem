@@ -66,18 +66,10 @@ void setup() {
 	previousEncoderValue = 0;
 
 	//Start the color sensor. We dont care if it isn't working correctly.
-	if (useColorSensor == true) {
-		if (colorSensor.begin()) {
-			Serial.println("Found sensor");
-		} else {
-			Serial.println("No TCS34725 found ... check your connections");
-			while (1)
-				; // halt!
-		}
-//		colorSensor.setInterrupt(false);
-	}
+	colorSensor.begin();
+//	colorSensor.setInterrupt(true);
 
-	// thanks PhilB for this gamma table! it helps convert RGB colors to what humans see
+	//thanks PhilB for this gamma table! it helps convert RGB colors to what humans see
 	for (uint16_t i = 0; i < 256; i++) {
 		float x = i;
 		x /= 255;
@@ -95,6 +87,7 @@ void setup() {
 	animationSelectMode();
 }
 void loop() {
+	colorSensor.setInterrupt(true);
 	currentEncoderValue += encoder->getValue();
 
 	ClickEncoder::Button b = encoder->getButton();
@@ -104,6 +97,7 @@ void loop() {
 			cycleSettingsMode();
 			break;
 		case ClickEncoder::DoubleClicked:
+			flipFlop(useColorSensor);
 			encoder->setAccelerationEnabled(!encoder->getAccelerationEnabled());
 			break;
 		case ClickEncoder::Released:

@@ -22,6 +22,12 @@ void setPixel(CRGB strip[], uint16_t index, CRGB color) {
 	strip[index] = color;
 }
 
+void blackInfinityStrip() {
+	for(uint8_t i=0;i<NUM_INFINITY_LED;i++) {
+		infinity[i] = CRGB::Black;
+	}
+}
+
 //Check out the memmove function to maybe do it more quickly
 void shift(CRGB strip[], bool changeDirection) {
 	CRGB wrapAroundPixel;

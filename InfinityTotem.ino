@@ -17,7 +17,7 @@
 #define NUM_INFINITY_LED 60
 #define NUM_SETTING_LED 5
 
-Adafruit_TCS34725 colorSensor = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_50MS, TCS34725_GAIN_1X);
+Adafruit_TCS34725 colorSensor = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_2_4MS, TCS34725_GAIN_60X);
 bool useColorSensor = false;
 
 ClickEncoder *encoder;
@@ -67,7 +67,6 @@ void setup() {
 
 	//Start the color sensor. We dont care if it isn't working correctly.
 	colorSensor.begin();
-//	colorSensor.setInterrupt(true);
 
 	//thanks PhilB for this gamma table! it helps convert RGB colors to what humans see
 	for (uint16_t i = 0; i < 256; i++) {
@@ -108,7 +107,6 @@ void loop() {
 		}
 	}
 
-//	if b was open, do this, if not dont...maybe stop the jumping on mode change?
 	if (b == ClickEncoder::Open) {
 		if (currentEncoderValue != previousEncoderValue) {
 			changeSettingsMode();
@@ -206,6 +204,10 @@ void runAnimation() {
 	case 9:
 		blinkRandom(1, true);
 		break;
+	case 10:
+		meteorChaserColorSensor(16, 50);
+		delay(showSpeed);
+		break;
 	default:
 		shift(infinity, direction);
 		delay(showSpeed);
@@ -234,7 +236,7 @@ void getColorSensorData() {
 	if (useColorSensor == true) {
 		// it takes length of the integration time to read a color
 		colorSensor.getRawData(&red, &green, &blue, &clear);
-		delay(50); // this delay could be a parameter or something
+		delay(3); // this delay could be a parameter or something
 
 		// Figure out some basic hex code for visualization
 		uint32_t sum = clear;
@@ -261,9 +263,9 @@ void changeSettingValue() {
 
 void checkSettingValueBoundries() {
 	if (settingValue >= 254) {
-		settingValue = 9;
+		settingValue = 10;
 	}
-	if (settingValue > 10) {
+	if (settingValue > 11) {
 		settingValue = 0;
 	}
 }

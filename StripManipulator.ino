@@ -3,11 +3,9 @@
  */
 
 void setStrip(CRGB strip[], CRGB color) {
-
 }
 
 void setStrip(CRGB strip[]) {
-
 }
 
 void setPixel(CRGB strip[], uint16_t index) {

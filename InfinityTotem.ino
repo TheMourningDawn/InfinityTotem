@@ -1,7 +1,7 @@
 #include <Wire.h>
 #include <FastLED.h>
-#include <ClickEncoder.h>
-#include <TimerOne.h>
+#include "TimerOne.h"
+#include "ClickEncoder.h"
 #include "Adafruit_TCS34725.h"
 
 // set to false if using a common cathode LED
@@ -47,184 +47,184 @@ bool direction = true;
 float r, g, b;
 
 void timerIsr() {
-	encoder->service();
+  encoder->service();
 }
 
 void setup() {
-	Serial.begin(9600);
+  Serial.begin(9600);
 
-	//Initialize FastLED for the infinity symbol strip and the settings strip
-	FastLED.addLeds<NEOPIXEL, PIN_INFINITY_STRIP>(infinity, NUM_INFINITY_LED);
-	FastLED.addLeds<NEOPIXEL, PIN_SETTINGS_STRIP>(settings, NUM_SETTING_LED);
+  //Initialize FastLED for the infinity symbol strip and the settings strip
+  FastLED.addLeds<NEOPIXEL, PIN_INFINITY_STRIP>(infinity, NUM_INFINITY_LED);
+  FastLED.addLeds<NEOPIXEL, PIN_SETTINGS_STRIP>(settings, NUM_SETTING_LED);
 
-	//Initialize the encoder (knob) and it's interrupt
-	encoder = new ClickEncoder(0, 1, 6, 4, false);
-	Timer1.initialize(1000);
-	Timer1.attachInterrupt(timerIsr);
+  //Initialize the encoder (knob) and it's interrupt
+  encoder = new ClickEncoder(0, 1, 6, 4, false);
+  Timer1.initialize(1000);
+  Timer1.attachInterrupt(timerIsr);
 
-	//Initial value for the previous encoder value
-	previousEncoderValue = 0;
+  //Initial value for the previous encoder value
+  previousEncoderValue = 0;
 
-	//Start the color sensor. We dont care if it isn't working correctly.
-	colorSensor.begin();
+  //Start the color sensor. We dont care if it isn't working correctly.
+  colorSensor.begin();
 
-	//thanks PhilB for this gamma table! it helps convert RGB colors to what humans see
-	for (uint16_t i = 0; i < 256; i++) {
-		float x = i;
-		x /= 255;
-		x = pow(x, 2.5);
-		x *= 255;
+  //thanks PhilB for this gamma table! it helps convert RGB colors to what humans see
+  for (uint16_t i = 0; i < 256; i++) {
+    float x = i;
+    x /= 255;
+    x = pow(x, 2.5);
+    x *= 255;
 
-		if (commonAnode) {
-			gammatable[i] = 255 - x;
-		} else {
-			gammatable[i] = x;
-		}
-	}
+    if (commonAnode) {
+      gammatable[i] = 255 - x;
+    } else {
+      gammatable[i] = x;
+    }
+  }
 
-	displaySettingMode();
-	animationSelectMode();
+  displaySettingMode();
+  animationSelectMode();
 }
 void loop() {
-	colorSensor.setInterrupt(true);
-	currentEncoderValue += encoder->getValue();
+  colorSensor.setInterrupt(true);
+  currentEncoderValue += encoder->getValue();
 
-	ClickEncoder::Button b = encoder->getButton();
-	if (b != ClickEncoder::Open) {
-		switch (b) {
-		case ClickEncoder::Clicked:
-			cycleSettingsMode();
-			break;
-		case ClickEncoder::DoubleClicked:
-			flipFlop(useColorSensor);
-			encoder->setAccelerationEnabled(!encoder->getAccelerationEnabled());
-			break;
-		case ClickEncoder::Released:
-			flipFlop(direction);
-			break;
-		default:
-			;
-		}
-	}
+  ClickEncoder::Button b = encoder->getButton();
+  if (b != ClickEncoder::Open) {
+    switch (b) {
+      case ClickEncoder::Clicked:
+        cycleSettingsMode();
+        break;
+      case ClickEncoder::DoubleClicked:
+        flipFlop(useColorSensor);
+        encoder->setAccelerationEnabled(!encoder->getAccelerationEnabled());
+        break;
+      case ClickEncoder::Released:
+        flipFlop(direction);
+        break;
+      default:
+        ;
+    }
+  }
 
-	if (b == ClickEncoder::Open) {
-		if (currentEncoderValue != previousEncoderValue) {
-			changeSettingsMode();
-			previousEncoderValue = currentEncoderValue;
-		}
-	}
+  if (b == ClickEncoder::Open) {
+    if (currentEncoderValue != previousEncoderValue) {
+      changeSettingsMode();
+      previousEncoderValue = currentEncoderValue;
+    }
+  }
 
-	runAnimation();
-	FastLED.show();
+  runAnimation();
+  FastLED.show();
 }
 
 void changeSettingsMode() {
-	switch (settingMode) {
-	case 0:
-		animationSelectMode();
-		break;
-	case 1:
-		//Color select mode
-		colorCounter += 5;
-		previousEncoderValue = currentEncoderValue; //this is dumb. I'm dumb. Not sure what to do.
-		animationSelectMode();
-		break;
-	case 2:
-		speedSelectMode();
-		break;
-	case 3:
-		//Changes the "brightness" value of the whole strip. Not exactly what you'd think...
-		if (currentEncoderValue > previousEncoderValue) {
-			for (int i = 0; i < NUM_INFINITY_LED; i++) {
-				infinity[i] += 5;
-			}
-		} else if (currentEncoderValue < previousEncoderValue) {
-			for (int i = 0; i < NUM_INFINITY_LED; i++) {
-				infinity[i] -= 5;
-			}
-		}
-		break;
-	default:
-		;
-	}
+  switch (settingMode) {
+    case 0:
+      animationSelectMode();
+      break;
+    case 1:
+      //Color select mode
+      colorCounter += 5;
+      previousEncoderValue = currentEncoderValue; //this is dumb. I'm dumb. Not sure what to do.
+      animationSelectMode();
+      break;
+    case 2:
+      speedSelectMode();
+      break;
+    case 3:
+      //Changes the "brightness" value of the whole strip. Not exactly what you'd think...
+      if (currentEncoderValue > previousEncoderValue) {
+        for (int i = 0; i < NUM_INFINITY_LED; i++) {
+          infinity[i] += 5;
+        }
+      } else if (currentEncoderValue < previousEncoderValue) {
+        for (int i = 0; i < NUM_INFINITY_LED; i++) {
+          infinity[i] -= 5;
+        }
+      }
+      break;
+    default:
+      ;
+  }
 }
 
 void animationSelectMode() {
-	changeSettingValue();
+  changeSettingValue();
 
-	switch (settingValue) {
-	case 0: //shift
-		fill_solid(&(infinity[0]), 60, CRGB::Black);
-		meteorChaser(15, 12, 160, false);
-		break;
-	case 1: //shift
-		if (settingMode == 0) {
-			fill_solid(&(infinity[0]), 60, CRGB::Black);
-		}
-		fourPoints(7, 21, 35, 49);
-		break;
-	case 2: //shift
-		colorCounter = random8();
-		fillSolid(colorCounter);
-		colorCounter = random8();
-		meteorChaser(20, 14, 160, true);
-		break;
-	case 3: //shift
-		fillSolid(colorCounter);
-		meteorChaser(30, 26, 160, true);
-		break;
-	case 4: //shift
-		wipeInfinity(25);
-		break;
-	case 5: //cycleSolid
-		fillSolid(colorCounter);
-		break;
-	default:
-		break;
-	}
+  switch (settingValue) {
+    case 0: //shift
+      fill_solid(&(infinity[0]), 60, CRGB::Black);
+      meteorChaser(15, 12, 160, false);
+      break;
+    case 1: //shift
+      if (settingMode == 0) {
+        fill_solid(&(infinity[0]), 60, CRGB::Black);
+      }
+      fourPoints(7, 21, 35, 49);
+      break;
+    case 2: //shift
+      colorCounter = random8();
+      fillSolid(colorCounter);
+      colorCounter = random8();
+      meteorChaser(20, 14, 160, true);
+      break;
+    case 3: //shift
+      fillSolid(colorCounter);
+      meteorChaser(30, 26, 160, true);
+      break;
+    case 4: //shift
+      wipeInfinity(25);
+      break;
+    case 5: //cycleSolid
+      fillSolid(colorCounter);
+      break;
+    default:
+      break;
+  }
 
-	FastLED.show();
+  FastLED.show();
 }
 
 void runAnimation() {
-	switch (settingValue) {
-	case 5:
-		cycleSolid();
-		delay(showSpeed);
-		break;
-	case 6:
-		middleFanout(30);
-		break;
-	case 7:
-		chasingFromSides(false, showSpeed);
-		break;
-	case 8:
-		chasingInfinity(true, showSpeed);
-		break;
-	case 9:
-		blinkRandom(1, true);
-		break;
-	case 10:
-		meteorChaserColorSensor(16, 50);
-		delay(showSpeed);
-		break;
-	default:
-		shift(infinity, direction);
-		delay(showSpeed);
-		break;
-	}
-	FastLED.show();
+  switch (settingValue) {
+    case 5:
+      cycleSolid();
+      delay(showSpeed);
+      break;
+    case 6:
+      middleFanout(30);
+      break;
+    case 7:
+      chasingFromSides(false, showSpeed);
+      break;
+    case 8:
+      chasingInfinity(true, showSpeed);
+      break;
+    case 9:
+      blinkRandom(1, true);
+      break;
+    case 10:
+      meteorChaserColorSensor(16, 50);
+      delay(showSpeed);
+      break;
+    default:
+      shift(infinity, direction);
+      delay(showSpeed);
+      break;
+  }
+  FastLED.show();
 }
 
 void speedSelectMode() {
-	if (currentEncoderValue > previousEncoderValue) {
-		showSpeed -= 2;
-	} else if (currentEncoderValue < previousEncoderValue) {
-		showSpeed += 2;
-	}
-	if (showSpeed <= 4) {
-		showSpeed = 5;
-	}
+  if (currentEncoderValue > previousEncoderValue) {
+    showSpeed -= 2;
+  } else if (currentEncoderValue < previousEncoderValue) {
+    showSpeed += 2;
+  }
+  if (showSpeed <= 4) {
+    showSpeed = 5;
+  }
 }
 
 /*
@@ -232,49 +232,49 @@ void speedSelectMode() {
  * Use with gammatable[(int) r] to get a reasonable color
  */
 void getColorSensorData() {
-	uint16_t clear, red, green, blue;
-	if (useColorSensor == true) {
-		// it takes length of the integration time to read a color
-		colorSensor.getRawData(&red, &green, &blue, &clear);
-		delay(3); // this delay could be a parameter or something
+  uint16_t clear, red, green, blue;
+  if (useColorSensor == true) {
+    // it takes length of the integration time to read a color
+    colorSensor.getRawData(&red, &green, &blue, &clear);
+    delay(3); // this delay could be a parameter or something
 
-		// Figure out some basic hex code for visualization
-		uint32_t sum = clear;
-		r = red;
-		r /= sum;
-		g = green;
-		g /= sum;
-		b = blue;
-		b /= sum;
-		r *= 256;
-		g *= 256;
-		b *= 256;
-	}
+    // Figure out some basic hex code for visualization
+    uint32_t sum = clear;
+    r = red;
+    r /= sum;
+    g = green;
+    g /= sum;
+    b = blue;
+    b /= sum;
+    r *= 256;
+    g *= 256;
+    b *= 256;
+  }
 }
 
 void changeSettingValue() {
-	if (currentEncoderValue > previousEncoderValue) {
-		settingValue++;
-	} else if (currentEncoderValue < previousEncoderValue) {
-		settingValue--;
-	}
-	checkSettingValueBoundries();
+  if (currentEncoderValue > previousEncoderValue) {
+    settingValue++;
+  } else if (currentEncoderValue < previousEncoderValue) {
+    settingValue--;
+  }
+  checkSettingValueBoundries();
 }
 
 void checkSettingValueBoundries() {
-	if (settingValue >= 254) {
-		settingValue = 10;
-	}
-	if (settingValue > 11) {
-		settingValue = 0;
-	}
+  if (settingValue >= 254) {
+    settingValue = 10;
+  }
+  if (settingValue > 11) {
+    settingValue = 0;
+  }
 }
 
 void flipFlop(bool &flopToFlip) {
-	if (flopToFlip == true) {
-		flopToFlip = false;
-		return;
-	}
-	flopToFlip = true;
+  if (flopToFlip == true) {
+    flopToFlip = false;
+    return;
+  }
+  flopToFlip = true;
 }
 

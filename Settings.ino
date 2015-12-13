@@ -53,6 +53,3 @@ void setSettingStrip(CRGB color, uint8_t numberOfDots) {
 	}
 }
 
-void flashSettingsStripRainbow(uint8_t delay) {
-
-}

@@ -12,12 +12,6 @@ void halfTopBottom(bool animate, uint16_t animationDelay, CRGB colorTop, CRGB co
 	uint16_t endPoint = 45;
 
 	while (rightAnchor < endPoint) {
-
-		Serial.print("LeftAnchor: ");
-		Serial.print(leftAnchor);
-		Serial.print(" -  RightAnchor: ");
-		Serial.println(rightAnchor);
-
 		setPixel(infinity, rightAnchor, colorTop);
 		setPixel(infinity, leftAnchor, colorBottom);
 		rightAnchor++;
